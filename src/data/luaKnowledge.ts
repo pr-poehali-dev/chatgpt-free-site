@@ -686,8 +686,149 @@ print("Прошло секунд:", os.clock() - startClock)`
   }
 };
 
-export const getLuaResponse = (userInput: string, language: string): string => {
+const robloxGamesExamples = {
+  murderMystery: `🎯 **Murder Mystery 2 - Механики игры**
+
+**Основные роли:**
+- Sheriff (Шериф) - защитник
+- Murderer (Убийца) - атакующий  
+- Innocent (Невинный) - выживающий
+
+**Типичная структура кода MM2:**
+
+\`\`\`lua
+-- Система ролей
+local Roles = {
+    Sheriff = "Sheriff",
+    Murderer = "Murderer", 
+    Innocent = "Innocent"
+}
+
+-- Назначение ролей
+local function assignRoles(players)
+    local playerList = {}
+    for _, player in ipairs(players) do
+        table.insert(playerList, player)
+    end
+    
+    -- Перемешиваем
+    for i = #playerList, 2, -1 do
+        local j = math.random(i)
+        playerList[i], playerList[j] = playerList[j], playerList[i]
+    end
+    
+    -- Назначаем
+    playerList[1].Role.Value = Roles.Murderer
+    playerList[2].Role.Value = Roles.Sheriff
+    
+    for i = 3, #playerList do
+        playerList[i].Role.Value = Roles.Innocent
+    end
+end
+\`\`\`
+
+**Система оружия:**
+\`\`\`lua
+local Tool = script.Parent
+local Handle = Tool:WaitForChild("Handle")
+
+Tool.Activated:Connect(function()
+    local player = Tool.Parent.Parent
+    local character = player.Character
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- Raycast для выстрела
+    local origin = humanoidRootPart.Position
+    local direction = (mouse.Hit.Position - origin).Unit * 100
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    if result then
+        local hitPart = result.Instance
+        local hitCharacter = hitPart.Parent
+        local humanoid = hitCharacter:FindFirstChild("Humanoid")
+        
+        if humanoid then
+            -- Проверка роли
+            if player.Role.Value == "Sheriff" then
+                if hitCharacter.Role.Value == "Murderer" then
+                    humanoid.Health = 0
+                end
+            end
+        end
+    end
+end)
+\`\`\``,
+
+  obby: `🏃 **Obby (Obstacle Course) - Система**
+
+\`\`\`lua
+-- Checkpoint система
+local Players = game:GetService("Players")
+local checkpoints = workspace.Checkpoints:GetChildren()
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        local leaderstats = player:FindFirstChild("leaderstats")
+        
+        if not leaderstats then
+            leaderstats = Instance.new("Folder")
+            leaderstats.Name = "leaderstats"
+            leaderstats.Parent = player
+            
+            local stage = Instance.new("IntValue")
+            stage.Name = "Stage"
+            stage.Value = 0
+            stage.Parent = leaderstats
+        end
+        
+        -- Телепорт на checkpoint
+        local currentStage = player.leaderstats.Stage.Value
+        if currentStage > 0 and checkpoints[currentStage] then
+            character:WaitForChild("HumanoidRootPart").CFrame = 
+                checkpoints[currentStage].CFrame + Vector3.new(0, 5, 0)
+        end
+        
+        humanoid.Died:Connect(function()
+            wait(2)
+            player:LoadCharacter()
+        end)
+    end)
+end)
+
+-- Checkpoints касание
+for i, checkpoint in ipairs(checkpoints) do
+    checkpoint.Touched:Connect(function(hit)
+        local humanoid = hit.Parent:FindFirstChild("Humanoid")
+        if humanoid then
+            local player = Players:GetPlayerFromCharacter(hit.Parent)
+            if player and player.leaderstats.Stage.Value < i then
+                player.leaderstats.Stage.Value = i
+            end
+        end
+    end)
+end
+\`\`\``
+};
+
+export const conversationHistory: Array<{role: string, content: string}> = [];
+
+export const getLuaResponse = (userInput: string, language: string, history: Array<{role: string, content: string}> = []): string => {
   const input = userInput.toLowerCase();
+  
+  const lastMessages = history.slice(-5).map(m => m.content.toLowerCase()).join(' ');
+  const contextKeywords = lastMessages;
+  
+  if (input.includes('murder mystery') || input.includes('мм2') || input.includes('mm2')) {
+    return robloxGamesExamples.murderMystery;
+  }
+  
+  if (input.includes('obby') || input.includes('обби') || input.includes('паркур')) {
+    return robloxGamesExamples.obby;
+  }
   
   if (language === 'lua' || language === 'luau' || language === 'roblox') {
     if (input.includes('переменн') || input.includes('variable')) {
